@@ -1,0 +1,170 @@
+
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
+enum class Zone {
+    Inner, Middle, Outer
+};
+
+constexpr long long BASE_PAISE[] = {
+    1000, 2000, 3000
+};
+
+constexpr int PEAK_SURCHARGE_PERCENT = 20;
+constexpr long long MIN_BALANCE_PAISE = 5000;
+
+class Journey {
+public:
+    Zone zone;
+    int hour;
+
+    Journey(Zone z, int h) : zone(z), hour(h) {}
+
+    bool isPeak() const {
+        return (hour >= 8 && hour < 10) ||
+               (hour >= 17 && hour < 20);
+    }
+};
+
+class FareTable {
+public:
+    static long long fare(Zone z, bool peak) {
+        long long base = 0;
+
+        switch (z) {
+            case Zone::Inner:
+                base = BASE_PAISE[0];
+                break;
+
+            case Zone::Middle:
+                base = BASE_PAISE[1];
+                break;
+
+            case Zone::Outer:
+                base = BASE_PAISE[2];
+                break;
+
+            default:
+                return -1;
+        }
+
+        if (peak)
+            base += base * PEAK_SURCHARGE_PERCENT / 100;
+
+        return base;
+    }
+};
+
+class SmartCard {
+private:
+    long long balancePaise;
+
+public:
+    SmartCard(long long balance) {
+        balancePaise = balance;
+    }
+
+    bool canTravel(long long f) const {
+        return f >= 0 &&
+               balancePaise - f >= MIN_BALANCE_PAISE;
+    }
+
+    bool deduct(long long f) {
+        if (!canTravel(f))
+            return false;
+
+        balancePaise -= f;
+        return true;
+    }
+
+    bool recharge(long long amount) {
+        if (amount <= 0)
+            return false;
+
+        balancePaise += amount;
+        return true;
+    }
+
+    long long balance() const {
+        return balancePaise;
+    }
+};
+
+void printMoney(long long paise) {
+    cout << "Rs " << paise / 100 << "."
+         << setw(2) << setfill('0')
+         << paise % 100 << setfill(' ');
+}
+
+int main() {
+    long long initialBalance;
+    int zoneChoice, hour;
+
+    cout << "===== NAMMA METRO SMART CARD =====\n";
+
+    cout << "Enter initial balance in Rs: ";
+    if (!(cin >> initialBalance) || initialBalance < 0) {
+        cout << "Invalid balance!";
+        return 0;
+    }
+
+    SmartCard card(initialBalance * 100);
+
+    cout << "\nSelect Zone:\n";
+    cout << "1. Inner Zone\n";
+    cout << "2. Middle Zone\n";
+    cout << "3. Outer Zone\n";
+
+    cout << "Enter zone choice: ";
+    if (!(cin >> zoneChoice) ||
+        zoneChoice < 1 || zoneChoice > 3) {
+        cout << "Invalid zone!";
+        return 0;
+    }
+
+    cout << "Enter journey hour (0-23): ";
+    if (!(cin >> hour) || hour < 0 || hour > 23) {
+        cout << "Invalid hour!";
+        return 0;
+    }
+
+    Zone z = static_cast<Zone>(zoneChoice - 1);
+
+    Journey journey(z, hour);
+
+    long long f = FareTable::fare(
+        journey.zone, journey.isPeak()
+    );
+
+    cout << "\n===== JOURNEY REPORT =====\n";
+
+    cout << "Zone: ";
+    if (zoneChoice == 1)
+        cout << "Inner";
+    else if (zoneChoice == 2)
+        cout << "Middle";
+    else
+        cout << "Outer";
+
+    cout << "\nHour: " << hour;
+    cout << "\nPeak: "
+         << (journey.isPeak() ? "Yes" : "No");
+
+    cout << "\nFare: ";
+    printMoney(f);
+
+    if (card.deduct(f)) {
+        cout << "\nJourney Status: ALLOWED";
+    } else {
+        cout << "\nJourney Status: DENIED";
+        cout << "\nReason: Minimum Rs 50 balance required.";
+    }
+
+    cout << "\nRemaining Balance: ";
+    printMoney(card.balance());
+
+    cout << "\n\n===== END OF PROGRAM =====\n";
+
+    return 0;
+}
